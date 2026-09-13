@@ -2,6 +2,14 @@ import os
 import sys
 
 # Configure environment variables to prevent Keras 3 / TensorFlow incompatibility issues in Transformers
+# Configure environment variables for memory efficiency on 512MB free tier containers
+os.environ["MALLOC_ARENA_MAX"] = "2"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["USE_TF"] = "0"
 os.environ["USE_TORCH"] = "1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -26,7 +34,7 @@ from rag.farm_chat import FarmChat
 app = Flask(__name__)
 CORS(app)
 
-# Initialize models
+# Initialize light prediction models
 print("Loading AgroPredict ML models...")
 crop_model = CropRecommender()
 borewell_model = BorewellRiskScorer()
@@ -35,14 +43,6 @@ yield_model = YieldPredictor()
 farm_chat = FarmChat()
 print("AgroPredict ML models loaded successfully!")
 
-# Initialize chat/RAG in background (lazy load on first request)
-import threading
-def init_chat_bg():
-    try:
-        farm_chat.initialize()
-    except Exception as e:
-        print(f"[WARN] Chat init deferred: {e}")
-threading.Thread(target=init_chat_bg, daemon=True).start()
 
 
 @app.route('/ml/health', methods=['GET'])
